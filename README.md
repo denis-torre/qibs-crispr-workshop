@@ -11,18 +11,16 @@ We will begin with basic quality control of the raw FASTQ files, followed by ada
 
 ### 2. Check data and environment access
 ---
-First, connect to Cayuga via SSH using Visual Studio Code as described in previous workshops.
-
-Next, make sure you can load the conda environment that contains all the necessary tools for this workshop:
+First, connect to Cayuga via SSH using Visual Studio Code as described in previous workshops. Make sure you have full access to the workshop materials:
 
 ```bash
+# Load the conda environment
 conda activate /athena/cayuga_0083/scratch/det4016/envs/crispr_env
-```
 
-Confirm access to the directory where the workshop data is stored:
-
-```bash
+# Navigate to the workshop directory
 cd /athena/cayuga_0083/scratch/det4016/qibs-crispr-workshop
+
+# List the directory contents
 ls
 ```
 
