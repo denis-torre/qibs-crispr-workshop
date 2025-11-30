@@ -3,11 +3,11 @@ Denis Torre and Tingfeng Guo, 2025
 
 ### 1. Introduction
 ---
-The goal of this workshop is to outline the full computational workflow used in bulk CRISPR screening analysis data, including quality control, trimming, guide-sequence table generation, read counting with MAGeCK, and downstream R-based analysis and plotting.
+The goal of this workshop is to outline the full computational workflow used in standard bulk CRISPR screening analysis data, including quality control, trimming, read counting with MAGeCK, and downstream R-based analysis and plotting.
 
 For today's workshop, we will be analyzing publicly available CRISPR screen data from a published study aiming to identify regulators of human definitive endoderm (DE) differentiation: [Genome-scale screens identify JNK–JUN signaling as a barrier for pluripotency exit and endoderm differentiation](https://www.nature.com/articles/s41588-019-0408-9).
 
-We will begin with basic quality control of the raw FASTQ files, followed by adapter removal and trimming to the expected gRNA length. Next, we will generate a clean gRNA reference table, quantify gRNA abundances with MAGeCK, and perform differential analysis to identify enriched or depleted guides. We will conclude with a brief R-based inspection of the gene-level results and simple visualizations.
+We will begin with basic quality control of the raw reads, followed by adapter removal and trimming to the expected gRNA length. Next, we will generate a clean gRNA reference table, quantify gRNA abundances with MAGeCK, and perform differential analysis to identify enriched or depleted guides. We will conclude with a brief R-based inspection of the gene-level results and simple visualizations.
 
 ### 2. Check data and environment access
 ---
@@ -27,7 +27,7 @@ ls
 The FASTQ files for this workshop are located in the `crispr_data/01-fastq` directory:
 
 ```bash
-ls /athena/cayuga_0083/scratch/det4016/qibs-crispr-workshop/crispr_data/01-fastq
+ls -1 /athena/cayuga_0083/scratch/det4016/qibs-crispr-workshop/crispr_data/01-fastq
 ```
 You should see the following files: 
 
@@ -42,10 +42,6 @@ These files correspond to sequencing reads from GFP-positive and GFP-negative so
 The cells used in this study contain a knock-in GFP reporter at the SOX17 locus, which is a key marker of endoderm fate. Therefore, the GFP-positive cells are expected to be enriched for guides promoting endoderm differentiation, while GFP-negative cells should be depleted of such guides.
 
 ![Workflow Diagram](images/crispr-1.png)
-
-To start, we will perform quality control and trimming on a single FASTQ file (`Experiment_1_GFPpos_R1_001.fastq.gz`) to demonstrate the workflow.
-
-Next, we will analyze the processed count files for all experiments located in the `/athena/cayuga_0083/scratch/det4016/qibs-crispr-workshop/crispr_data/02-mageck_count` directory.
 
 ### 3. Setup working directory
 ---
@@ -132,7 +128,7 @@ We can run `cutadapt` to trim the adapters from the reads, and retain the 20 bas
 
 ```bash
 # Create output directory for trimmed FASTQ files
-mkdir 02-trimmed_fastq
+mkdir 02-cutadapt
 
 # Run cutadapt to trim adapters and retain 20 base gRNA sequences
 cutadapt \
@@ -140,8 +136,8 @@ cutadapt \
     --length 20 \
     --discard-untrimmed \
     -j 8 \
-    -o 02-trimmed_fastq/Experiment_1_GFPpos_R1_001_trimmed.fastq.gz \
-    /athena/cayuga_0083/scratch/det4016/qibs-crispr-workshop/crispr_data/01-fastq/Experiment_1_GFPpos_R1_001.fastq.gz  > 02-trimmed_fastq/Experiment_1_GFPpos_cutadapt_report.txt
+    -o 02-cutadapt/Experiment_1_GFPpos_R1_001_trimmed.fastq.gz \
+    /athena/cayuga_0083/scratch/det4016/qibs-crispr-workshop/crispr_data/01-fastq/Experiment_1_GFPpos_R1_001.fastq.gz  > 02-cutadapt/Experiment_1_GFPpos_cutadapt_report.txt
 ```
 
 This command should take approximately 3 minutes. The `cutadapt` program will generate a trimmed FASTQ file containing only the gRNA sequences. The -g option specifies the 5' adapter sequence to be trimmed, and will remove this sequence (and anything upstream of it) from each read. The --length option retains only reads of the specified length (20 bases), and the --discard-untrimmed option removes any reads that do not contain the adapter sequence.
@@ -150,7 +146,7 @@ We can now inspect the FASTQ file to confirm that the adapters have been removed
 
 ```bash
 # View the first few lines of the trimmed FASTQ file
-zcat 02-trimmed_fastq/Experiment_1_GFPpos_R1_001_trimmed.fastq.gz | head -n 12
+zcat 02-cutadapt/Experiment_1_GFPpos_R1_001_trimmed.fastq.gz | head -n 12
 ```
 You should see output similar to the following:
 ```
@@ -169,7 +165,7 @@ IIIIIIIIIIIIIIIIIIIH
 ```
 The adapter sequences have been successfully removed, and only the 20 base gRNA sequences remain.
 
-Optionally, you can also inspect the cutadapt report (`02-trimmed_fastq/Experiment_1_GFPpos_cutadapt_report.txt`) to see how many reads were trimmed and retained.
+Optionally, you can also inspect the cutadapt report (`02-cutadapt/Experiment_1_GFPpos_cutadapt_report.txt`) to see how many reads were trimmed and retained.
 
 ### 6. Re-run FASTQC on trimmed reads
 ---
@@ -179,7 +175,7 @@ To confirm that the adapters have been successfully removed, we can re-run FastQ
 mkdir 03-fastqc_trimmed
 
 # Run FastQC on the trimmed FASTQ file
-fastqc 02-trimmed_fastq/Experiment_1_GFPpos_R1_001_trimmed.fastq.gz -o 03-fastqc_trimmed
+fastqc 02-cutadapt/Experiment_1_GFPpos_R1_001_trimmed.fastq.gz -o 03-fastqc_trimmed
 ```
 
 We can then inspect the FastQC report for the trimmed reads:
