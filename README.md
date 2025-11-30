@@ -401,13 +401,22 @@ Run the R script from the terminal:
 Rscript 07-r_analysis/mageck_analysis.R
 ```
 
-### 11. Conclusion
+The script will generate two volcano plots, one for positive selection and one for negative selection, and save them as PNG files in the `07-r_analysis` directory.
+
+![Volcano Plot Example - Positive Selection](images/pos_volcano_plot.png)
+![Volcano Plot Example - Negative Selection](images/neg_volcano_plot.png)
+
+The volcano plots visualize the log fold changes against the negative log10 p-values for each gene. Genes that are significantly enriched or depleted in the GFP-positive cells can be identified based on their position in the plot.
+- Genes in the upper right quadrant are significantly enriched (high log fold change and low p-value). Perturbations in these genes may promote endoderm differentiation, as they are more abundant in GFP-positive cells.
+- Genes in the upper left quadrant are significantly depleted (low log fold change and low p-value). Perturbations in these genes may inhibit endoderm differentiation, as they are less abundant in GFP-positive cells.
+
+### 11. Assignment
 ---
 In this workshop, we have covered the complete computational workflow for analyzing bulk CRISPR screen data, from raw FASTQ files to differential analysis and visualization of results. We have utilized tools such as FastQC, Cutadapt, MAGeCK, and R for data processing and analysis.
 
-### 12. Assignment
----
-Using the knowledge gained from this workshop, analyze the second experiment's data (Experiment 2) following the same steps outlined above. Generate a report summarizing your findings, including quality control metrics, trimming statistics, MAGeCK results, and visualizations.
+Using the knowledge gained from this workshop, analyze the second experiment's data (Experiment 2) following the same steps outlined above. The raw FASTQ files are available in the following directory: `/home/fs01/det4016/qibs-crispr-workshop/det4016/qibs-crispr-workshop/crispr_data/01-fastq`.
 
-Also, compare the results between Experiment 1 and Experiment 2. Are there any consistent hits between the two experiments? What biological insights can you draw from the data? Make a venn diagram to show the overlap of significant genes between the two experiments. Make two plots correlating the log fold changes of genes between the two experiments for both positive and negative selection.
-
+Following the approach illustrated above:
+- Repeat steps 4-10 for Experiment 2, generating quality control reports, trimmed FASTQ files, MAGeCK count and test results, and R-based visualizations.
+- Share relevant QC reports, MAGeCK output files, and R-generated plots for Experiment 2.
+- For each experiment, identify the top significantly enriched and depleted genes based on FDR < 0.05 and absolute log fold change > 1. Create a venn diagram to show the overlap of significant genes between the two experiments.
