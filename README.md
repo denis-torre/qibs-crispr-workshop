@@ -318,3 +318,128 @@ MIXL1   4       2.7857e-08      2.5907e-07      0.000381        8       4       
 CTNNB1  4       2.9671e-08      2.5907e-07      0.000381        9       4       -2.8889 1.0     1.0     1.0     19106   0       -2.8889
 ```
 
+For each gene, two sets of statistics are provided: one for negative selection (neg|*) and one for positive selection (pos|*). The key columns to focus on are:
+- `id`: Gene identifier
+- `pos|score`: Positive selection score (higher values indicate enrichment in GFP-positive cells)
+- `pos|p-value`: P-value for positive selection
+- `pos|fdr`: False discovery rate for positive selection
+- `pos|lfc`: Log fold change for positive selection
+- `neg|score`: Negative selection score (higher values indicate depletion in GFP-positive cells)
+- `neg|p-value`: P-value for negative selection
+- `neg|fdr`: False discovery rate for negative selection
+- `neg|lfc`: Log fold change for negative selection
+
+### 10. R-based analysis and visualization
+---
+To further analyze and visualize the MAGeCK results, we can use R. Below is an example R script that reads in the gene-level results and generates a volcano plot to visualize the enriched and depleted genes.
+
+First, create a directory for R scripts and outputs:
+```bash
+# Create output directory for R analysis
+mkdir 07-r_analysis
+
+# Create an R script file
+touch 07-r_analysis/mageck_analysis.R
+
+```
+
+Next, open the `mageck_analysis.R` file in VS Code and add the following R code:
+
+```R
+# Load necessary libraries
+library(data.table)
+library(dplyr)
+library(ggplot2)
+library(ggrepel)
+
+# Read in the MAGeCK gene-level results
+mageck_dataframe <- fread("06-mageck_test/CRISPR_screen_Experiment1.gene_summary.txt")
+
+# Fix column names (i.e. replace '|' with '.')
+colnames(mageck_dataframe) <- make.names(colnames(mageck_dataframe))
+
+# Function to create volcano plots with top 5 labeled genes
+create_volcano_plot <- function(data, selection_type, output_name, n = 15) {
+
+    # Determine column names based on selection type
+    lfc_col <- paste0(selection_type, ".lfc")
+    pval_col <- paste0(selection_type, ".p.value")
+    
+    # Get top 5 genes by p-value
+    top_genes <- data %>%
+        arrange(!!sym(pval_col)) %>%
+        slice_head(n = n) %>%
+        pull(id)
+    
+    # Create volcano plot
+    plot <- ggplot(data, aes(x = !!sym(lfc_col), y = -log10(!!sym(pval_col)))) +
+        geom_point(alpha = 0.5) +
+        geom_label_repel(data = filter(data, id %in% top_genes),
+                                         aes(label = id),
+                                         size = 3,
+                                         nudge_y = -0.5) +
+        theme_classic() +
+        labs(title = paste("Volcano Plot -", tools::toTitleCase(selection_type), "Selection"),
+                 x = "Log Fold Change",
+                 y = "-Log10 P-value") +
+        geom_hline(yintercept = -log10(0.05), linetype = "dashed", color = "red") +
+        geom_vline(xintercept = c(-1, 1), linetype = "dashed", color = "blue")
+    
+    ggsave(output_name, plot = plot, width = 8, height = 6)
+}
+
+# Create volcano plots for both positive and negative selection
+for (selection_type in c('pos', 'neg')) {
+    output_name <- paste0("07-r_analysis/", selection_type, "_volcano_plot.png")
+    create_volcano_plot(mageck_dataframe, selection_type, output_name)
+}
+
+# Make S plot
+plot_dataframe <- mageck_dataframe %>%
+  mutate(
+    log_neg = -log10(`neg.p.value`),
+    log_pos = -log10(`pos.p.value`),
+
+    # choose the stronger direction
+    combined_score = pmax(log_neg, log_pos)*
+      sign(log_pos - log_neg),
+    direction = if_else(log_neg > log_pos, "negative", "positive")
+  ) %>%
+  arrange(combined_score) %>%        # rank from weakest to strongest hit
+  mutate(rank = row_number())
+head(plot_dataframe)
+
+gp <- ggplot(plot_dataframe,
+       aes(x = rank,
+           y = combined_score,
+           color = direction)) +
+  geom_point(size = 0.8) +
+  scale_color_manual(values = c(
+    negative = "steelblue",
+    positive = "firebrick"
+  )) +
+  xlab("Gene rank") +
+  ylab("Combined -log10 RRA p-value") +
+  theme_classic()
+
+ggsave("07-r_analysis/S_plot.png", plot = gp, width = 8, height = 6)
+
+```
+
+```
+
+Run the R script from the terminal:
+```bash
+Rscript 07-r_analysis/mageck_analysis.R
+```
+
+### 11. Conclusion
+---
+In this workshop, we have covered the complete computational workflow for analyzing bulk CRISPR screen data, from raw FASTQ files to differential analysis and visualization of results. We have utilized tools such as FastQC, Cutadapt, MAGeCK, and R for data processing and analysis.
+
+### 12. Assignment
+---
+Using the knowledge gained from this workshop, analyze the second experiment's data (Experiment 2) following the same steps outlined above. Generate a report summarizing your findings, including quality control metrics, trimming statistics, MAGeCK results, and visualizations.
+
+Also, compare the results between Experiment 1 and Experiment 2. Are there any consistent hits between the two experiments? What biological insights can you draw from the data? Make a venn diagram to show the overlap of significant genes between the two experiments. Make two plots correlating the log fold changes of genes between the two experiments for both positive and negative selection.
+
