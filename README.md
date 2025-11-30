@@ -394,38 +394,6 @@ for (selection_type in c('pos', 'neg')) {
     create_volcano_plot(mageck_dataframe, selection_type, output_name)
 }
 
-# Make S plot
-plot_dataframe <- mageck_dataframe %>%
-  mutate(
-    log_neg = -log10(`neg.p.value`),
-    log_pos = -log10(`pos.p.value`),
-
-    # choose the stronger direction
-    combined_score = pmax(log_neg, log_pos)*
-      sign(log_pos - log_neg),
-    direction = if_else(log_neg > log_pos, "negative", "positive")
-  ) %>%
-  arrange(combined_score) %>%        # rank from weakest to strongest hit
-  mutate(rank = row_number())
-head(plot_dataframe)
-
-gp <- ggplot(plot_dataframe,
-       aes(x = rank,
-           y = combined_score,
-           color = direction)) +
-  geom_point(size = 0.8) +
-  scale_color_manual(values = c(
-    negative = "steelblue",
-    positive = "firebrick"
-  )) +
-  xlab("Gene rank") +
-  ylab("Combined -log10 RRA p-value") +
-  theme_classic()
-
-ggsave("07-r_analysis/S_plot.png", plot = gp, width = 8, height = 6)
-
-```
-
 ```
 
 Run the R script from the terminal:
