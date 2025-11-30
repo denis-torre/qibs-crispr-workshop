@@ -98,7 +98,7 @@ Here, we can observe strong biases in the first 25 bases, which correspond to th
 We can inspect the first few reads in the FASTQ file to confirm the presence of adapter sequences:
 
 ```bash
-# View the first 8 lines of the FASTQ file
+# View the first few lines of the FASTQ file
 zcat /athena/cayuga_0083/scratch/det4016/qibs-crispr-workshop/crispr_data/01-fastq/Experiment_1_GFPpos_R1_001.fastq.gz | head -n 12
 ```
 You should see output similar to the following:
@@ -117,19 +117,18 @@ TTCTTGTGGAAAGGACGAAACACCGTCAGCCAGAAGCTCTACAGAGTTTT
 <DDDDIIIIGIIHHHIIIIIIIIIIIIIIIIIIIIIIIIIIIIIHIIIIH
 ```
 
-Notice the structure of the reads: **TTCTTGTGGAAGGACGAAACACCG**-ATCCGGCAGGCAAAGTACCA-**GTTTTA**
-- The bolded sequences at the start and end of the reads correspond to the adapter sequences.
-- The middle sequence (20 bases) corresponds to the gRNA sequence.
+Note the structure of the reads: **TTCTTGTGGAAGGACGAAACACCG**-ATCCGGCAGGCAAAGTACCA-**GTTTTA**
+- The bolded sequences at the start and end of the reads correspond to the adapter sequences, mostly consistent across all reads.
+- The middle sequence (20 bases) corresponds to the gRNA sequence, which varies between reads.
 
 
 ### 5. Trim adapters with Cutadapt
 ---
 
-To remove the adapter sequences from the reads, we will use the `cutadapt` tool. First, we need to identify the adapter sequences used in the library preparation. For this dataset, we can use the following 5' adapter sequence: `TGTGGAAAGGACGAAACACCG`. 
+To remove the adapter sequences from the reads, we will use the `cutadapt` tool. For this dataset, we can use the following 5' adapter sequence: `TGTGGAAAGGACGAAACACCG`. 
 
 
-
-Then, we can run `cutadapt` to trim the adapters from the reads, and retain the 20 base gRNA sequences.
+We can run `cutadapt` to trim the adapters from the reads, and retain the 20 base gRNA sequences.
 
 ```bash
 # Create output directory for trimmed FASTQ files
@@ -145,12 +144,12 @@ cutadapt \
     /athena/cayuga_0083/scratch/det4016/qibs-crispr-workshop/crispr_data/01-fastq/Experiment_1_GFPpos_R1_001.fastq.gz  > 02-trimmed_fastq/Experiment_1_GFPpos_cutadapt_report.txt
 ```
 
-This command should take approximately 2 minutes. The `cutadapt` program will generate a trimmed FASTQ file containing only the gRNA sequences. The -g option specifies the 5' adapter sequence to be trimmed, and will remove this sequence (and anything upstream of it) from each read. The --length option retains only reads of the specified length (20 bases), and the --discard-untrimmed option removes any reads that do not contain the adapter sequence.
+This command should take approximately 3 minutes. The `cutadapt` program will generate a trimmed FASTQ file containing only the gRNA sequences. The -g option specifies the 5' adapter sequence to be trimmed, and will remove this sequence (and anything upstream of it) from each read. The --length option retains only reads of the specified length (20 bases), and the --discard-untrimmed option removes any reads that do not contain the adapter sequence.
 
 We can now inspect the FASTQ file to confirm that the adapters have been removed:
 
 ```bash
-# View the first 8 lines of the trimmed FASTQ file
+# View the first few lines of the trimmed FASTQ file
 zcat 02-trimmed_fastq/Experiment_1_GFPpos_R1_001_trimmed.fastq.gz | head -n 12
 ```
 You should see output similar to the following:
@@ -211,11 +210,11 @@ For example, here is the summary page from that report:
 
 ### 8. Run MAGeCK count
 ---
-To quantify the abundance of each gRNA in the trimmed FASTQ file, we will use the `mageck count` command from the MAGeCK suite. For this, we first need a reference table containing the gRNA sequences and their corresponding target genes. The reference table for this dataset can be found at `/athena/cayuga_0083/scratch/det4016/qibs-crispr-workshop/crispr_data/02-processed_data/05-grna_table/brunello_gRNA_sequences.csv`.
+To quantify the abundance of each gRNA in the trimmed FASTQ file, we will use the `mageck count` command from the MAGeCK suite. For this, we first need a reference table containing the gRNA sequences and their corresponding target genes. The reference table for this dataset can be found at `/athena/cayuga_0083/scratch/det4016/qibs-crispr-workshop/crispr_data/02-processed_data/05-grna_sequences/brunello_gRNA_sequences.csv`.
 
 ```bash
 # Display the first few lines of the gRNA reference table
-head -n 10 /athena/cayuga_0083/scratch/det4016/qibs-crispr-workshop/crispr_data/02-processed_data/05-grna_table/brunello_gRNA_sequences.csv
+head -n 10 /athena/cayuga_0083/scratch/det4016/qibs-crispr-workshop/crispr_data/02-processed_data/05-grna_sequences/brunello_gRNA_sequences.csv
 ```
 
 You should see output similar to the following:
@@ -250,7 +249,7 @@ mkdir 05-mageck_count
 mageck count \
     --fastq /athena/cayuga_0083/scratch/det4016/qibs-crispr-workshop/crispr_data/02-processed_data/02-cutadapt/Experiment_1_GFPneg_R1_001.trimmed.fastq.gz /athena/cayuga_0083/scratch/det4016/qibs-crispr-workshop/crispr_data/02-processed_data/02-cutadapt/Experiment_1_GFPpos_R1_001.trimmed.fastq.gz  \
     --sample-label Experiment1_GFPneg,Experiment1_GFPpos \
-    --list-seq /athena/cayuga_0083/scratch/det4016/qibs-crispr-workshop/crispr_data/02-processed_data/05-grna_table/brunello_gRNA_sequences.csv \
+    --list-seq /athena/cayuga_0083/scratch/det4016/qibs-crispr-workshop/crispr_data/02-processed_data/05-grna_sequences/brunello_gRNA_sequences.csv \
     -n 05-mageck_count/CRISPR_screen_counts \
     --pdf-report
 
@@ -287,8 +286,7 @@ mageck test \
     -k 05-mageck_count/CRISPR_screen_counts.count.txt \
     -t Experiment1_GFPpos \
     -c Experiment1_GFPneg \
-    -n 06-mageck_test/CRISPR_screen_Experiment1 \
-    --pdf-report
+    -n 06-mageck_test/CRISPR_screen_Experiment1
 ```
 
 This command should take approximately 2 minutes. The `mageck test` program will generate two main output files: 
