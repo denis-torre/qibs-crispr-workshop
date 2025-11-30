@@ -57,13 +57,13 @@ The data was collected across three separate experiments, with slightly differen
 - Experiment 2: Kieffer differentiation protocol, Day 3
 - Experiment 3: Kroon differentiation protocol, Day 3
 
-To start, we will perform quality control and trimming on a single FASTQ file (Experiment_1_GFPpos_R1_001.fastq.gz) to demonstrate the workflow.
+To start, we will perform quality control and trimming on a single FASTQ file (`Experiment_1_GFPpos_R1_001.fastq.gz`) to demonstrate the workflow.
 
 Next, we will analyze the processed count files for all experiments located in the `/home/fs01/det4016/qibs-crispr-workshop/det4016/qibs-crispr-workshop/crispr_data/02-mageck_count` directory.
 
 ### 3. Setup working directory
 ---
-Create a working directory for this workshop and navigate into it:
+Create a working directory for this workshop and navigate to it:
 ```bash
 # Create directory name variable:
 workdir=/athena/qibs_class/scratch/$(whoami)/workshopCRISPR
@@ -104,9 +104,8 @@ Now, we can inspect the FastQC report:
 
 ![FastQC Report Example](images/fastqc-1.png)
 ![FastQC Report Example](images/fastqc-2.png)
-
-By inspecting the per base sequence content plot, we can observe how the nucleotide distribution varies across the length of the reads. In CRISPR screen data, we often see a non-random distribution of nucleotides at the start of the reads due to the presence of sequencing adapters:
 ![FastQC Report Example](images/fastqc-3.png)
+By inspecting the per base sequence content plot, we can observe how the nucleotide distribution varies across the length of the reads. In CRISPR screen data, we often see a non-random distribution of nucleotides at the start of the reads due to the presence of sequencing adapters.
 
 Here, we can observe strong biases in the first 25 bases, which correspond to the sequencing adapters. The following 20 bases show a more balanced nucleotide distribution, which is expected for the gRNA sequences. Lastly, the final bases again show biases due to the presence of trailing adapter sequences. These adapters need to be removed before proceeding with downstream analysis.
 
@@ -132,8 +131,9 @@ TTCTTGTGGAAAGGACGAAACACCGTCAGCCAGAAGCTCTACAGAGTTTT
 <DDDDIIIIGIIHHHIIIIIIIIIIIIIIIIIIIIIIIIIIIIIHIIIIH
 ```
 
-Notice the structure of the reads: <span style="background-color: #ffffb3">TTCTTGTGGAAGGACGAAACACCG</span>ATCCGGCAGGCAAAGTACCA<span style="background-color: #8dd3c7">GTTTTA</span>
-
+Notice the structure of the reads: **TTCTTGTGGAAGGACGAAACACCG**-ATCCGGCAGGCAAAGTACCA-**GTTTTA**
+- The bolded sequences at the start and end of the reads correspond to the adapter sequences.
+- The middle sequence (20 bases) corresponds to the gRNA sequence.
 
 
 ### 5. Trim adapters with Cutadapt
@@ -159,4 +159,68 @@ cutadapt \
     /athena/cayuga_0083/scratch/det4016/qibs-crispr-workshop/crispr_data/01-fastq/Experiment_1_GFPpos_R1_001.fastq.gz  > 02-trimmed_fastq/Experiment_1_GFPpos_cutadapt_report.txt
 ```
 
-This command should take approximately 2 minutes. The `cutadapt` program will generate a trimmed FASTQ file containing only the gRNA sequences.
+This command should take approximately 2 minutes. The `cutadapt` program will generate a trimmed FASTQ file containing only the gRNA sequences. The -g option specifies the 5' adapter sequence to be trimmed, and will remove this sequence (and anything upstream of it) from each read. The --length option retains only reads of the specified length (20 bases), and the --discard-untrimmed option removes any reads that do not contain the adapter sequence.
+
+We can now inspect the FASTQ file to confirm that the adapters have been removed:
+
+```bash
+# View the first 8 lines of the trimmed FASTQ file
+zcat 02-trimmed_fastq/Experiment_1_GFPpos_R1_001_trimmed.fastq.gz | head -n 12
+```
+You should see output similar to the following:
+```
+@GWNJ-0478:462:GW1805021130:1:1102:1525:1989 1:N:0:CGAGTAAT
+ATCCGGCAGGCAAAGTACCA
++
+IIIIIIIIIIIIIIIIIIII
+@GWNJ-0478:462:GW1805021130:1:1102:2393:1982 1:N:0:CGAGTAAT
+AGTTGTACGTGAGCGTCCAG
++
+HHHHGHHIIIIIIIIIIIII
+@GWNJ-0478:462:GW1805021130:1:1102:3182:1995 1:N:0:CGAGTAAT
+TCAGCCAGAAGCTCTACAGA
++
+IIIIIIIIIIIIIIIIIIIH
+```
+The adapter sequences have been successfully removed, and only the 20 base gRNA sequences remain.
+
+Optionally, you can also inspect the cutadapt report (`02-trimmed_fastq/Experiment_1_GFPpos_cutadapt_report.txt`) to see how many reads were trimmed and retained.
+
+### 6. Re-run FASTQC on trimmed reads
+---
+To confirm that the adapters have been successfully removed, we can re-run FastQC on the trimmed FASTQ file:
+```bash
+# Create output directory for FastQC reports on trimmed reads
+mkdir 03-fastqc_trimmed
+
+# Run FastQC on the trimmed FASTQ file
+fastqc 02-trimmed_fastq/Experiment_1_GFPpos_R1_001_trimmed.fastq.gz -o 03-fastqc_trimmed
+```
+
+We can then inspect the FastQC report for the trimmed reads:
+![FastQC Report Example](images/fastqc-4.png)
+![FastQC Report Example](images/fastqc-5.png)
+![FastQC Report Example](images/fastqc-6.png)
+By inspecting the per base sequence content plot, we can observe that the nucleotide distribution is now more balanced across the length of the reads, indicating that the adapter sequences have been successfully removed.
+
+### 7. Optional - run MultiQC
+---
+To aggregate the FastQC reports into a single report, we can use the `multiqc` tool:
+```bash
+# Create output directory for MultiQC report
+mkdir 04-multiqc_report
+
+# Run MultiQC on the FastQC reports
+multiqc . -o 04-multiqc_report
+```
+
+This command will generate a single HTML report that summarizes the quality metrics from all supported tools in the current directory. You can view the report using the `Live Preview` plugin in VS Code or transfer the HTML file to your local machine by right clicking on the html file and selecting "Download".
+
+MultiQC is especially useful when analyzing multiple samples, as it provides a convenient way to compare quality metrics across all samples in a single report. It also supports a wide range of bioinformatics tools, making it a great choice for summarizing quality control results (e.g. see [here](https://docs.seqera.io/multiqc/modules/)).
+
+To view an example, download the MultiQC report generated on the full set of FASTQ files provided for this workshop from `/home/fs01/det4016/qibs-crispr-workshop/det4016/qibs-crispr-workshop/crispr_data/02-processed_data/04-multiqc_report/multiqc_report.html`.
+
+For example, here is the summary page from that report:
+![MultiQC Report Example](images/multiqc-1.png)
+
+### 8. 
