@@ -250,12 +250,11 @@ mageck count \
     --fastq /athena/cayuga_0083/scratch/det4016/qibs-crispr-workshop/crispr_data/02-processed_data/02-cutadapt/Experiment_1_GFPneg_R1_001.trimmed.fastq.gz /athena/cayuga_0083/scratch/det4016/qibs-crispr-workshop/crispr_data/02-processed_data/02-cutadapt/Experiment_1_GFPpos_R1_001.trimmed.fastq.gz  \
     --sample-label Experiment1_GFPneg,Experiment1_GFPpos \
     --list-seq /athena/cayuga_0083/scratch/det4016/qibs-crispr-workshop/crispr_data/02-processed_data/05-grna_sequences/brunello_gRNA_sequences.csv \
-    -n 05-mageck_count/CRISPR_screen_counts \
-    --pdf-report
+    -n 05-mageck_count/CRISPR_screen_counts
 
 ```
 
-This command should take approximately 3 minutes. The `mageck count` program will generate a count table containing the abundance of each gRNA in each sample, as well as a PDF report summarizing the results. We can inspect the count table:
+This command should take approximately 3 minutes. The `mageck count` program will generate a count table containing the abundance of each gRNA in each sample. We can inspect the count table:
 
 ```bash
 # View the first few lines of the MAGeCK count table
@@ -271,8 +270,6 @@ The columns correspond to:
 - Column 1: gRNA identifier
 - Column 2: Target gene
 - Columns 3-6: gRNA counts in each sample
-
-We can also inspect the PDF report (`05-mageck_count/CRISPR_screen_counts.pdf`) to visualize the distribution of gRNA counts across samples.
 
 ### 9. Run MAGeCK test
 ---
