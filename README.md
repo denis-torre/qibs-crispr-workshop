@@ -83,3 +83,80 @@ Next, open the working directory in VS Code, using File > Open Folder and naviga
 ### 4. Run FASTQC
 ---
 First, we will perform quality control on the raw FASTQ files using FastQC.
+
+```bash
+
+# Make sure you are in the working directory and the conda environment is activated
+cd $workdir
+conda activate /athena/cayuga_0083/scratch/det4016/envs/crispr_env
+
+# Create output directory for FastQC reports
+mkdir 01-fastqc
+
+# Run FastQC on the raw FASTQ file
+fastqc /athena/cayuga_0083/scratch/det4016/qibs-crispr-workshop/crispr_data/01-fastq/Experiment_1_GFPpos_R1_001.fastq.gz -o 01-fastqc
+
+```
+
+This command should take approximately 1 minute. The `fastqc` program will generate an HTML report that you can open in your web browser to assess the quality of the sequencing data. To view the report, use the `Live Preview` plugin in VS Code or transfer the HTML file to your local machine by right clicking on the html file and selecting "Download".
+
+Now, we can inspect the FastQC report:
+
+![FastQC Report Example](images/fastqc-1.png)
+![FastQC Report Example](images/fastqc-2.png)
+
+By inspecting the per base sequence content plot, we can observe how the nucleotide distribution varies across the length of the reads. In CRISPR screen data, we often see a non-random distribution of nucleotides at the start of the reads due to the presence of sequencing adapters:
+![FastQC Report Example](images/fastqc-3.png)
+
+Here, we can observe strong biases in the first 25 bases, which correspond to the sequencing adapters. The following 20 bases show a more balanced nucleotide distribution, which is expected for the gRNA sequences. Lastly, the final bases again show biases due to the presence of trailing adapter sequences. These adapters need to be removed before proceeding with downstream analysis.
+
+We can inspect the first few reads in the FASTQ file to confirm the presence of adapter sequences:
+
+```bash
+# View the first 8 lines of the FASTQ file
+zcat /athena/cayuga_0083/scratch/det4016/qibs-crispr-workshop/crispr_data/01-fastq/Experiment_1_GFPpos_R1_001.fastq.gz | head -n 12
+```
+You should see output similar to the following:
+```
+@GWNJ-0478:462:GW1805021130:1:1102:1525:1989 1:N:0:CGAGTAAT
+TTCTTGTGGAAGGACGAAACACCGATCCGGCAGGCAAAGTACCAGTTTTA
++
+DDDDDIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIII
+@GWNJ-0478:462:GW1805021130:1:1102:2393:1982 1:N:0:CGAGTAAT
+NTCTTGTGGAAAGGACGAAACACCGAGTTGTACGTGAGCGTCCAGGTTTT
++
+#<<DDHIIIIIIHIHHIIIIIIIIIHHHHGHHIIIIIIIIIIIIIIIIII
+@GWNJ-0478:462:GW1805021130:1:1102:3182:1995 1:N:0:CGAGTAAT
+TTCTTGTGGAAAGGACGAAACACCGTCAGCCAGAAGCTCTACAGAGTTTT
++
+<DDDDIIIIGIIHHHIIIIIIIIIIIIIIIIIIIIIIIIIIIIIHIIIIH
+```
+
+Notice the structure of the reads: <span style="background-color: #ffffb3">TTCTTGTGGAAGGACGAAACACCG</span>ATCCGGCAGGCAAAGTACCA<span style="background-color: #8dd3c7">GTTTTA</span>
+
+
+
+### 5. Trim adapters with Cutadapt
+---
+
+To remove the adapter sequences from the reads, we will use the `cutadapt` tool. First, we need to identify the adapter sequences used in the library preparation. For this dataset, we can use the following 5' adapter sequence: `TGTGGAAAGGACGAAACACCG`. 
+
+
+
+Then, we can run `cutadapt` to trim the adapters from the reads, and retain the 20 base gRNA sequences.
+
+```bash
+# Create output directory for trimmed FASTQ files
+mkdir 02-trimmed_fastq
+
+# Run cutadapt to trim adapters and retain 20 base gRNA sequences
+cutadapt \
+    -g TGTGGAAAGGACGAAACACCG \
+    --length 20 \
+    --discard-untrimmed \
+    -j 8 \
+    -o 02-trimmed_fastq/Experiment_1_GFPpos_R1_001_trimmed.fastq.gz \
+    /athena/cayuga_0083/scratch/det4016/qibs-crispr-workshop/crispr_data/01-fastq/Experiment_1_GFPpos_R1_001.fastq.gz  > 02-trimmed_fastq/Experiment_1_GFPpos_cutadapt_report.txt
+```
+
+This command should take approximately 2 minutes. The `cutadapt` program will generate a trimmed FASTQ file containing only the gRNA sequences.
