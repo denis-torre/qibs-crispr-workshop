@@ -24,13 +24,6 @@ cd /athena/cayuga_0083/scratch/det4016/qibs-crispr-workshop
 ls
 ```
 
-You should see the following files and directories:
-
-```
-crispr_data/
-README.md
-```
-
 The FASTQ files for this workshop are located in the `crispr_data/01-fastq` directory:
 
 ```bash
@@ -50,14 +43,16 @@ Experiment_3_GFPpos_R1_001.fastq.gz
 These files correspond to sequencing reads from GFP-positive and GFP-negative sorted cell populations, respectively. 
 The cells used in this study contain a knock-in GFP reporter at the SOX17 locus, which is a key marker of endoderm fate. Therefore, the GFP-positive cells are expected to be enriched for guides promoting endoderm differentiation, while GFP-negative cells should be depleted of such guides.
 
+![Workflow Diagram](images/crispr-1.png)
+
+
 The data was collected across three separate experiments, with slightly different variations in the differentiation protocol used each time:
 - Experiment 1: Kieffer differentiation protocol, Day 2
 - Experiment 2: Kieffer differentiation protocol, Day 3
-- Experiment 3: Kroon differentiation protocol, Day 3
 
 To start, we will perform quality control and trimming on a single FASTQ file (`Experiment_1_GFPpos_R1_001.fastq.gz`) to demonstrate the workflow.
 
-Next, we will analyze the processed count files for all experiments located in the `/home/fs01/det4016/qibs-crispr-workshop/det4016/qibs-crispr-workshop/crispr_data/02-mageck_count` directory.
+Next, we will analyze the processed count files for all experiments located in the `/athena/cayuga_0083/scratch/det4016/qibs-crispr-workshop/crispr_data/02-mageck_count` directory.
 
 ### 3. Setup working directory
 ---
@@ -216,9 +211,86 @@ This command will generate a single HTML report that summarizes the quality metr
 
 MultiQC is especially useful when analyzing multiple samples, as it provides a convenient way to compare quality metrics across all samples in a single report. It also supports a wide range of bioinformatics tools, making it a great choice for summarizing quality control results (e.g. see [here](https://docs.seqera.io/multiqc/modules/)).
 
-To view an example, download the MultiQC report generated on the full set of FASTQ files provided for this workshop from `/home/fs01/det4016/qibs-crispr-workshop/det4016/qibs-crispr-workshop/crispr_data/02-processed_data/04-multiqc_report/multiqc_report.html`.
+To view an example, download the MultiQC report generated on the full set of FASTQ files provided for this workshop from `/athena/cayuga_0083/scratch/det4016/qibs-crispr-workshop/crispr_data/02-processed_data/04-multiqc_report/multiqc_report.html`.
 
 For example, here is the summary page from that report:
 ![MultiQC Report Example](images/multiqc-1.png)
 
-### 8. 
+### 8. Run MAGeCK count
+---
+To quantify the abundance of each gRNA in the trimmed FASTQ file, we will use the `mageck count` command from the MAGeCK suite. For this, we first need a reference table containing the gRNA sequences and their corresponding target genes. The reference table for this dataset can be found at `/athena/cayuga_0083/scratch/det4016/qibs-crispr-workshop/crispr_data/02-processed_data/05-grna_table/brunello_gRNA_sequences.csv`.
+
+```bash
+# Display the first few lines of the gRNA reference table
+head -n 10 /athena/cayuga_0083/scratch/det4016/qibs-crispr-workshop/crispr_data/02-processed_data/05-grna_table/brunello_gRNA_sequences.csv
+```
+
+You should see output similar to the following:
+```
+A1BG_1,CATCTTCTTTCACCTGAACG,A1BG
+A1BG_2,CTCCGGGGAGAACTCCGGCG,A1BG
+A1BG_3,TCTCCATGGTGCATCAGCAC,A1BG
+A1BG_4,TGGAAGTCCACTCCACTCAG,A1BG
+A2M_1,ACTGCATCTGTGCAAACGGG,A2M
+A2M_2,ATGTCTCATGAACTACCCTG,A2M
+A2M_3,TGAAATGAAACTTCACACTG,A2M
+A2M_4,TTACTCATATAGGATCCCAA,A2M
+NAT1_1,CGGAAGACACAAGGCACCTG,NAT1
+NAT1_2,GAACCTTAACATCCATTGTG,NAT1
+```
+
+The column structure is as follows:
+- Column 1: gRNA identifier
+- Column 2: gRNA sequence
+- Column 3: Target gene
+
+Now, we can run `mageck count` to quantify the gRNA abundances in the trimmed FASTQ. For this step, we will use pre-processed FASTQ files for the entire dataset, which can be found in `/athena/cayuga_0083/scratch/det4016/qibs-crispr-workshop/crispr_data/02-processed_data/02-cutadapt`.
+
+```bash
+# List the trimmed FASTQ files
+ls /athena/cayuga_0083/scratch/det4016/qibs-crispr-workshop/crispr_data/02-processed_data/02-cutadapt/*.fastq.gz
+
+# Create output directory for MAGeCK count results
+mkdir 05-mageck_count
+
+# Run MAGeCK count on all trimmed FASTQ files
+time mageck count \
+    --fastq /athena/cayuga_0083/scratch/det4016/qibs-crispr-workshop/crispr_data/02-processed_data/02-cutadapt/Experiment_1_GFPneg_R1_001.trimmed.fastq.gz /athena/cayuga_0083/scratch/det4016/qibs-crispr-workshop/crispr_data/02-processed_data/02-cutadapt/Experiment_1_GFPpos_R1_001.trimmed.fastq.gz /athena/cayuga_0083/scratch/det4016/qibs-crispr-workshop/crispr_data/02-processed_data/02-cutadapt/Experiment_2_GFPneg_R1_001.trimmed.fastq.gz /athena/cayuga_0083/scratch/det4016/qibs-crispr-workshop/crispr_data/02-processed_data/02-cutadapt/Experiment_2_GFPpos_R1_001.trimmed.fastq.gz \
+    --sample-label Experiment1_GFPneg,Experiment1_GFPpos,Experiment2_GFPneg,Experiment2_GFPpos \
+    --list-seq /athena/cayuga_0083/scratch/det4016/qibs-crispr-workshop/crispr_data/02-processed_data/05-grna_table/brunello_gRNA_sequences.csv \
+    -n 05-mageck_count/CRISPR_screen_counts_1 \
+    --pdf-report
+
+# time mageck count \
+#     --fastq $(echo /athena/cayuga_0083/scratch/det4016/qibs-crispr-workshop/crispr_data/02-processed_data/02-cutadapt/*.fastq.gz) \
+#     --sample-label Experiment1_GFPpos,Experiment1_GFPneg,Experiment2_GFPpos,Experiment2_GFPneg,Experiment3_GFPpos,Experiment3_GFPneg \
+#     --list-seq /athena/cayuga_0083/scratch/det4016/qibs-crispr-workshop/crispr_data/02-processed_data/05-grna_table/brunello_gRNA_sequences.csv \
+#     -n 05-mageck_count/CRISPR_screen_counts \
+#     --pdf-report
+```
+
+This command should take approximately 4 minutes. The `mageck count` program will generate a count table containing the abundance of each gRNA in each sample, as well as a PDF report summarizing the results. We can inspect the count table:
+
+```bash
+# View the first few lines of the MAGeCK count table
+head -n 10 05-mageck_count/CRISPR_screen_counts.count.txt
+```
+
+You should see output similar to the following:
+```
+sgRNA   Gene    sample1 sample2 sample3 sample4
+OR4K14_2        OR4K14  843     733     767     1243
+PRDM1_3 PRDM1   87      43      103     118
+VTCN1_4 VTCN1   544     581     535     785
+IQCF6_2 IQCF6   256     390     246     278
+RFXAP_4 RFXAP   178     123     121     116
+GLTP_4  GLTP    459     471     475     576
+C11orf24_3      C11orf24        1358    1714    1027    1423
+C7orf69_4       C7orf69 184     149     178     297
+NLGN4Y_3        NLGN4Y  422     764     420     721
+```
+
+The columns correspond to:
+- Column 1: gRNA identifier
+- Column 2: Target gene
+- Columns 3-6: gRNA counts in each sample
