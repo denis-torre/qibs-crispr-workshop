@@ -263,13 +263,22 @@ head -n 10 05-mageck_count/CRISPR_screen_counts.count.txt
 
 You should see output similar to the following:
 ```
-
+sgRNA   Gene    Experiment1_GFPneg      Experiment1_GFPpos
+OR4K14_2        OR4K14  843     733
+PRDM1_3 PRDM1   87      43
+VTCN1_4 VTCN1   544     581
+IQCF6_2 IQCF6   256     390
+RFXAP_4 RFXAP   178     123
+GLTP_4  GLTP    459     471
+C11orf24_3      C11orf24        1358    1714
+C7orf69_4       C7orf69 184     149
+NLGN4Y_3        NLGN4Y  422     764
 ```
 
 The columns correspond to:
 - Column 1: gRNA identifier
 - Column 2: Target gene
-- Columns 3-6: gRNA counts in each sample
+- Remaining columns: gRNA counts in each sample
 
 ### 9. Run MAGeCK test
 ---
@@ -297,6 +306,15 @@ head -n 10 06-mageck_test/CRISPR_screen_Experiment1.gene_summary.txt
 
 You should see output similar to the following:
 ```
-
+id      num     neg|score       neg|p-value     neg|fdr neg|rank        neg|goodsgrna   neg|lfc pos|score       pos|p-value     pos|fdr pos|rank        pos|goodsgrna        pos|lfc
+RLIM    4       4.2988e-15      2.5907e-07      0.000381        1       4       -1.536  1.0     1.0     1.0     19109   0       -1.536
+KMT2D   4       2.3403e-11      2.5907e-07      0.000381        2       4       -3.6428 1.0     1.0     1.0     19108   0       -3.6428
+TGFBR1  4       1.337e-09       2.5907e-07      0.000381        3       4       -1.8455 1.0     1.0     1.0     19107   0       -1.8455
+SMAD2   4       2.4287e-09      2.5907e-07      0.000381        4       4       -2.9891 0.99776 0.99778 1.0     19022   0       -2.9891
+DNAJC24 4       6.2721e-09      2.5907e-07      0.000381        5       4       -1.3794 0.99981 0.99981 1.0     19086   0       -1.3794
+ZMYM2   4       1.5437e-08      2.5907e-07      0.000381        6       3       -1.5317 0.94691 0.94687 1.0     17913   0       -1.5317
+SOX17   4       2.0948e-08      2.5907e-07      0.000381        7       4       -1.997  0.99983 0.99984 1.0     19088   0       -1.997
+MIXL1   4       2.7857e-08      2.5907e-07      0.000381        8       4       -1.8221 1.0     1.0     1.0     19100   0       -1.8221
+CTNNB1  4       2.9671e-08      2.5907e-07      0.000381        9       4       -2.8889 1.0     1.0     1.0     19106   0       -2.8889
 ```
 
